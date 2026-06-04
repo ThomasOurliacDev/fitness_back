@@ -6,14 +6,23 @@ import { CreateProgramDto } from './dto/create-program.dto.js';
 export class ProgramsService {
 	constructor(private readonly prisma: PrismaService) {}
 
-	async create(userId: string, dto: CreateProgramDto) {
-		return this.prisma.program.create({
+	async create(dto: CreateProgramDto) {
+		const response = await this.prisma.program.create({
 			data: {
 				name: dto.name,
 				description: dto.description,
-				userId: userId
+				userId: dto.userId
+			},
+			select: {
+				id: true,
+				name: true,
+				description: true,
+				userId: true,
+				createdAt: true,
+				updatedAt: true
 			}
 		});
+		return response;
 	}
 
 	async findAllByUser(userId: string) {

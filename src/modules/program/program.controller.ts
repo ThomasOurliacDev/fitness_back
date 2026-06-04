@@ -9,17 +9,17 @@ import { CurrentUser } from '../../core/decorator/current-user.decorator.js';
 @ApiTags('Programmes')
 @ApiBearerAuth()
 @UseGuards(jwtAuthGuard) // 🔒 Interdit l'accès sans token valide
-@Controller({ path: 'programs', version: '1' })
+@Controller({ path: 'program', version: '1' })
 export class ProgramController {
 	constructor(private readonly programsService: ProgramsService) {}
 
 	@Post()
 	@ApiOperation({ summary: 'Créer un nouveau programme' })
 	async create(
-		@Body() dto: CreateProgramDto,
-		@CurrentUser('id') userId: string // 🪄 Magie : on récupère l'ID du token
+		@Body() dto: CreateProgramDto
+		// @CurrentUser('id') userId: sting // 🪄 Magie : on récupère l'ID du token
 	) {
-		return this.programsService.create(userId, dto);
+		return this.programsService.create(dto);
 	}
 
 	@Get()
