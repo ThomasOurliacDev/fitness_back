@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: api-dev
+    env: node
+    region: frankfurt
+    plan: free
+    branch: develop
+    autoDeploy: false
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: development
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: api-int
+    env: node
+    region: frankfurt
+    plan: free
+    branch: develop
+    autoDeploy: false
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+
+  - type: web
+    name: api-prod
+    env: node
+    region: frankfurt
+    plan: free
+    branch: master
+    autoDeploy: false
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
