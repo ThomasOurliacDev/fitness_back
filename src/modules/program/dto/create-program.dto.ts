@@ -12,9 +12,4 @@ export class CreateProgramDto {
 	@IsString()
 	@MaxLength(500)
 	description?: string;
-
-	@ApiPropertyOptional({ example: '21bd6f91-33d3-4S8e-bs7a-f596dsc5748e' })
-	@IsString()
-	@MaxLength(500)
-	userId!: string;
 }

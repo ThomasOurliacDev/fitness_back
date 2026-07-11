@@ -8,7 +8,9 @@ import { PrismaModule } from './shared/prisma/prisma.module.js';
 import { LoggerMiddleware } from './core/middleware/logger.middleware.js';
 
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { ResponseInterceptor } from './core/interceptors/response.interceptor.js';
+import { AllExceptionsFilter } from './core/filters/all-exceptions.filter.js';
 import { ExercisesModule } from './modules/exercise/exercise.module.js';
 import { WorkoutExerciseModule } from './modules/workout-exercise/workout-exercise.module.js';
 import { WorkoutSessionsModule } from './modules/workout-session/workout-session.module.js';
@@ -44,6 +46,15 @@ import { SetModule } from './modules/sets/set.module.js';
 		{
 			provide: APP_GUARD,
 			useClass: ThrottlerGuard
+		},
+		// Enveloppe standard { success, data, error } sur toutes les réponses (cf. README)
+		{
+			provide: APP_INTERCEPTOR,
+			useClass: ResponseInterceptor
+		},
+		{
+			provide: APP_FILTER,
+			useClass: AllExceptionsFilter
 		}
 	]
 })

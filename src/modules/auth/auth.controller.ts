@@ -4,7 +4,7 @@ import { RegisterDto } from './dto/register.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { AuthRequest } from './type/type.js';
-import { JwtAuthGuard } from '../../core/guard/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard.js';
 
 @ApiTags('Authentication')
 @Controller({ path: 'auth', version: '1' })

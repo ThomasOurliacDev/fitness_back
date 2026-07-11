@@ -15,7 +15,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
 	// Cette méthode est appelée SEULEMENT si le token est valide
 	validate(payload: { sub: string; email: string }) {
-		// Ce qui est retourné ici sera injecté dans l'objet 'req.user' de tes controllers
-		return { sub: payload.sub, email: payload.email };
+		// Ce qui est retourné ici sera injecté dans l'objet 'req.user' de tes controllers.
+		// On expose 'id' (utilisé par @CurrentUser('id')) en plus de 'sub' (standard JWT).
+		return { id: payload.sub, sub: payload.sub, email: payload.email };
 	}
 }

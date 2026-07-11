@@ -2,11 +2,11 @@ import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ExerciseService } from './exercise.service.js';
 import { CreateExerciseDto } from './dto/create-exercise.dto.js';
-import { jwtAuthGuard } from '../../core/guards/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard.js';
 
 @ApiTags('Exercices (Dictionnaire)')
 @ApiBearerAuth()
-@UseGuards(jwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller({ path: 'exercises', version: '1' })
 export class ExerciseController {
 	constructor(private readonly exercisesService: ExerciseService) {}
