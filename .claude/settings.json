@@ -11,10 +11,7 @@
       "Bash(npx prisma *)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\entrainement",
-      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\core\\api",
-      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\entrainement\\program",
-      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\auth\\login"
+      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front"
     ]
   }
 }
