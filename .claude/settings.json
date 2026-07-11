@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx ng *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/v1/exercises)",
+      "Bash(netstat -ano)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"ProcessId = 20732\")",
+      "Bash(PORT=3001 node dist/src/main)",
+      "Bash(node -e ' *)",
+      "Bash(npx prisma *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\entrainement",
+      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\core\\api",
+      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\entrainement\\program",
+      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\auth\\login"
+    ]
+  }
+}

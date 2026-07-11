@@ -2,12 +2,12 @@ import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { WorkoutService } from './workout.service.js';
 import { CreateWorkoutDto } from './dto/create-workout.dto.js';
-import { jwtAuthGuard } from '../../core/guards/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../../core/guards/jwt-auth.guard.js';
 import { CurrentUser } from '../../core/decorator/current-user.decorator.js';
 
 @ApiTags('Séances (Workouts)')
 @ApiBearerAuth()
-@UseGuards(jwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 @Controller({ path: 'workouts', version: '1' })
 export class WorkoutController {
 	constructor(private readonly workoutsService: WorkoutService) {}
