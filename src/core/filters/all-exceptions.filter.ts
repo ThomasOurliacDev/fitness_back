@@ -28,6 +28,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
 		} else {
 			// Erreur inattendue (bug, Prisma...) : on log tout côté serveur,
 			// mais on ne fuite aucun détail technique au client.
+			// Les erreurs Prisma portent un code (P2021...) et une méta ({ table: ... })
+			// précieux en debug : on les sort sur une ligne à part, les viewers de logs
+			// (Render...) repliant souvent les messages multi-lignes.
+			const prismaError = exception as { code?: string; meta?: unknown; message?: string };
+			if (typeof prismaError?.code === 'string') {
+				this.logger.error(
+					`Code ${prismaError.code} — meta: ${JSON.stringify(prismaError.meta ?? null)} — ${prismaError.message?.split('\n').at(-1) ?? ''}`
+				);
+			}
 			this.logger.error(exception instanceof Error ? (exception.stack ?? exception.message) : String(exception));
 		}
 
