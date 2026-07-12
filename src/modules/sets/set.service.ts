@@ -31,9 +31,11 @@ export class SetService {
 				workoutSessionId: dto.workoutSessionId,
 				exerciseId: dto.exerciseId,
 				reps: dto.reps,
+				duration: dto.duration,
 				weight: dto.weight,
 				restTime: dto.restTime,
-				order: dto.order
+				order: dto.order,
+				success: dto.success ?? true
 			}
 		});
 	}

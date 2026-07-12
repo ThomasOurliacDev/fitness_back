@@ -28,8 +28,19 @@ export class ProgramsService {
 	async findAllByUser(userId: string) {
 		return this.prisma.program.findMany({
 			where: { userId },
-			// On peut déjà inclure les futures séances vides pour le front
-			include: { workouts: true },
+			// Les séances avec le groupe musculaire de chaque exercice (léger),
+			// pour que le front puisse afficher les groupes travaillés par programme
+			include: {
+				workouts: {
+					include: {
+						exercises: {
+							include: {
+								exercise: { select: { bodyPart: true } }
+							}
+						}
+					}
+				}
+			},
 			orderBy: { createdAt: 'desc' }
 		});
 	}

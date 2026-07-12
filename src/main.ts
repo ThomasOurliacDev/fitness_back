@@ -13,8 +13,10 @@ async function bootstrap() {
 	app.use(helmet());
 
 	// 2. Configuration CORS (pour que ton frontend Angular puisse faire des requêtes)
+	// `|| false` : si FRONTEND_URL manque, on N'AUTORISE AUCUNE origine croisée
+	// (origin: undefined ouvrirait le CORS à tout le monde).
 	app.enableCors({
-		origin: configService.get<string>('FRONTEND_URL') // En prod, remplace '*' par l'URL exacte de ton frontend (ex: 'https://monapp.com')
+		origin: configService.get<string>('FRONTEND_URL') || false
 	});
 
 	// 3. Versioning de l'API (ex: /v1/programs)

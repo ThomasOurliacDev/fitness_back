@@ -36,6 +36,8 @@ model Exercise {
   description String?
   bodyPart    String // Ex: 'CHEST', 'BACK', 'LEGS'
   type        String // Ex: 'WEIGHTLIFTING', 'BODYWEIGHT', 'CARDIO'
+  measure     String  @default("REPS") // 'REPS' (répétitions) ou 'TIME' (durée: gainage, cardio...)
+  weightIncrement Float @default(1) // Progression : kg ajoutés au plafond de reps (2 pour les gros polyarticulaires)
 
   workoutExercises WorkoutExercise[] // Lié aux programmes (Templates)
   sets             Set[] // Lié aux séances réalisées (Exécutions)
@@ -72,6 +74,7 @@ model WorkoutExercise {
   workoutId  String
   exerciseId String
   order      Int // Ordre dans la séance (ex: 1er exercice)
+  maxReps    Int    @default(12) // Progression : plafond de reps avant d'ajouter du poids (configurable)
 
   workout  Workout       @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   exercise Exercise      @relation(fields: [exerciseId], references: [id])
@@ -81,7 +84,8 @@ model WorkoutExercise {
 model SetTemplate {
   id                String @id @default(uuid())
   workoutExerciseId String
-  targetReps        Int? // Objectif de répétitions (ex: 10)
+  targetReps        Int? // Objectif de répétitions (ex: 10) — exercices en 'REPS'
+  targetDuration    Int? // Objectif de durée en secondes (ex: 45) — exercices en 'TIME'
   targetWeight      Float? // Objectif de poids en kg (ex: 80)
   restTime          Int // Temps de repos APRES la série (en secondes)
   order             Int // Ordre de la série (Série 1, Série 2...)
@@ -112,9 +116,11 @@ model Set {
 
   // Ce qui a été réellement soulevé/fait ce jour-là
   reps     Int?
+  duration Int? // Durée réelle en secondes — exercices en 'TIME' (gainage, cardio...)
   weight   Float?
   restTime Int // Temps de repos réel pris (en secondes)
   order    Int // Ordre chronologique dans la séance
+  success  Boolean @default(true) // La série a-t-elle été réussie (objectif atteint) ?
 
   session  WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
   exercise Exercise       @relation(fields: [exerciseId], references: [id])

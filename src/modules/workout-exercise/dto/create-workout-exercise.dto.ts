@@ -1,14 +1,20 @@
-import { IsNumber, IsOptional, IsUUID, Min, IsArray, ValidateNested } from 'class-validator';
+import { IsNumber, IsOptional, IsUUID, Min, Max, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 // 1. Le sous-DTO pour définir une série (SetTemplate)
 export class CreateSetTemplateDto {
-	@ApiPropertyOptional({ example: 10, description: 'Objectif de répétitions' })
+	@ApiPropertyOptional({ example: 10, description: "Objectif de répétitions (exercices mesurés en 'REPS')" })
 	@IsOptional()
 	@IsNumber()
 	@Min(1)
 	targetReps?: number;
+
+	@ApiPropertyOptional({ example: 45, description: "Objectif de durée en secondes (exercices mesurés en 'TIME')" })
+	@IsOptional()
+	@IsNumber()
+	@Min(1)
+	targetDuration?: number;
 
 	@ApiPropertyOptional({ example: 80, description: 'Objectif de poids en kg' })
 	@IsOptional()
@@ -40,6 +46,13 @@ export class CreateWorkoutExerciseDto {
 	@IsNumber()
 	@Min(1)
 	order!: number;
+
+	@ApiPropertyOptional({ example: 12, description: "Progression : plafond de reps avant d'ajouter du poids (défaut : 12)" })
+	@IsOptional()
+	@IsNumber()
+	@Min(1)
+	@Max(50)
+	maxReps?: number;
 
 	// 👉 C'EST ICI LA MAGIE : On valide un tableau d'objets !
 	@ApiProperty({ type: [CreateSetTemplateDto], description: 'Les séries prévues pour cet exercice' })

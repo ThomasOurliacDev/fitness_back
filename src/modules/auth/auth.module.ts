@@ -18,10 +18,16 @@ import { JwtConfig } from 'src/shared/types/types.js';
 			inject: [ConfigService],
 			useFactory: (configService: ConfigService) => {
 				const jwt = configService.get<JwtConfig>('jwt');
+
+				// Fail-fast : pas de secret = pas de démarrage (cf. jwt.strategy.ts)
+				if (!jwt?.secret) {
+					throw new Error('JWT_SECRET manquant : configure la variable d’environnement avant de démarrer.');
+				}
+
 				return {
 					global: true,
-					secret: jwt!.secret,
-					signOptions: jwt!.signOptions
+					secret: jwt.secret,
+					signOptions: jwt.signOptions
 				};
 			}
 		})

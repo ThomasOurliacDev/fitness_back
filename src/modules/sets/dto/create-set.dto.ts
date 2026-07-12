@@ -1,4 +1,4 @@
-import { IsUUID, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsUUID, IsNumber, IsOptional, IsBoolean, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateSetDto {
@@ -16,6 +16,12 @@ export class CreateSetDto {
 	@Min(0)
 	reps?: number;
 
+	@ApiPropertyOptional({ example: 45, description: "Durée réelle en secondes (exercices mesurés en 'TIME')" })
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	duration?: number;
+
 	@ApiPropertyOptional({ example: 82.5, description: 'Poids réellement soulevé' })
 	@IsOptional()
 	@IsNumber()
@@ -30,4 +36,9 @@ export class CreateSetDto {
 	@IsNumber()
 	@Min(1)
 	order!: number;
+
+	@ApiPropertyOptional({ example: true, description: 'La série a-t-elle été réussie ? (défaut : true)' })
+	@IsOptional()
+	@IsBoolean()
+	success?: boolean;
 }
