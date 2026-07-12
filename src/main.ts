@@ -13,10 +13,17 @@ async function bootstrap() {
 	app.use(helmet());
 
 	// 2. Configuration CORS (pour que ton frontend Angular puisse faire des requêtes)
-	// `|| false` : si FRONTEND_URL manque, on N'AUTORISE AUCUNE origine croisée
+	// FRONTEND_URL accepte une ou plusieurs origines séparées par des virgules,
+	// ex : "https://fitness-front-dev.vercel.app,http://localhost:4200".
+	// Chaque origine doit être complète (schéma inclus, pas de / final).
+	// Si FRONTEND_URL manque, on N'AUTORISE AUCUNE origine croisée
 	// (origin: undefined ouvrirait le CORS à tout le monde).
+	const allowedOrigins = (configService.get<string>('FRONTEND_URL') ?? '')
+		.split(',')
+		.map((origin) => origin.trim())
+		.filter(Boolean);
 	app.enableCors({
-		origin: configService.get<string>('FRONTEND_URL') || false
+		origin: allowedOrigins.length > 0 ? allowedOrigins : false
 	});
 
 	// 3. Versioning de l'API (ex: /v1/programs)

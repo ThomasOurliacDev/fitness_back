@@ -23,7 +23,23 @@
       "Bash(git -C \"/c/Users/ourli/Desktop/fitness_back\" log --oneline -3 -- .github/workflows/deploy-backend.yml)",
       "Bash(python -c ' *)",
       "Bash(npx --yes js-yaml .github/workflows/deploy-backend.yml)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(gh api *)",
+      "Bash(npx --yes js-yaml .github/workflows/deploy-frontend.yml)",
+      "WebFetch(domain:registry.terraform.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(terraform version *)",
+      "Bash(git -C \"/c/Users/ourli/Desktop/fitness_back\" status --short)",
+      "Bash(npm ls *)",
+      "Bash(npm explain *)",
+      "Bash(npm install *)",
+      "Bash(PORT=3005 FRONTEND_URL=\"https://fitness-front-dev.vercel.app,http://localhost:4200\" node dist/src/main)",
+      "Bash(curl -s -i -X OPTIONS http://localhost:3005/v1/auth/login -H \"Origin: https://fitness-front-dev.vercel.app\" -H \"Access-Control-Request-Method: POST\")",
+      "Bash(curl -s -i -X OPTIONS http://localhost:3005/v1/auth/login -H \"Origin: http://localhost:4200\" -H \"Access-Control-Request-Method: POST\")",
+      "Bash(curl -s -i -X OPTIONS http://localhost:3005/v1/auth/login -H \"Origin: https://evil.example.com\" -H \"Access-Control-Request-Method: POST\")",
+      "Bash(curl -s -i --max-time 30 -X OPTIONS https://fitness-back-8n5l.onrender.com/v1/auth/register -H \"Origin: https://fitness-front-dev.vercel.app\" -H \"Access-Control-Request-Method: POST\")",
+      "Bash(curl -s -i --max-time 45 -X OPTIONS https://fitness-back-8n5l.onrender.com/v1/auth/register -H \"Origin: https://fitness-front-dev.vercel.app\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type\")",
+      "Bash(curl -s -i --max-time 30 -X POST https://fitness-back-8n5l.onrender.com/v1/auth/register -H \"Origin: https://fitness-front-dev.vercel.app\" -H \"Content-Type: application/json\" -d '{}')"
     ],
     "additionalDirectories": [
       "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\entrainement",
@@ -35,7 +51,8 @@
       "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\features\\entrainement\\program-detail",
       "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\styles",
       "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src",
-      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\core\\auth"
+      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\src\\app\\core\\auth",
+      "c:\\Users\\ourli\\Desktop\\Fitness\\fitness_front\\.github\\workflows"
     ]
   }
 }
