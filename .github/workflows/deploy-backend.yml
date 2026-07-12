@@ -1,0 +1,125 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - develop # push sur develop → déploiement automatique en DEV
+    tags:
+      - 'int-*'  # tag int-...  (ex: int-2026.07.12)  → déploiement INT
+      - 'prod-*' # tag prod-... (ex: prod-v1.0.0)     → déploiement PROD
+  # Lancement manuel depuis l'onglet Actions, en choisissant la cible
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Environnement cible'
+        required: true
+        type: choice
+        options:
+          - dev
+          - int
+          - prod
+        default: dev
+
+jobs:
+  # Traduit l'événement (branche / tag / manuel) en nom d'environnement GitHub
+  target:
+    runs-on: ubuntu-latest
+    outputs:
+      env: ${{ steps.pick.outputs.env }}
+    steps:
+      - name: Déterminer l'environnement cible
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          INPUT_TARGET: ${{ inputs.target }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "env=$INPUT_TARGET" >> "$GITHUB_OUTPUT"
+          elif [[ "$REF" == refs/tags/prod-* ]]; then
+            echo "env=prod" >> "$GITHUB_OUTPUT"
+          elif [[ "$REF" == refs/tags/int-* ]]; then
+            echo "env=int" >> "$GITHUB_OUTPUT"
+          else
+            echo "env=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+  # On revalide le build du commit exact qui sera déployé
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+
+  deploy:
+    needs: [target, verify]
+    runs-on: ubuntu-latest
+    # Les secrets (DATABASE_URL, RENDER_DEPLOY_HOOK) sont lus dans l'environnement
+    # GitHub correspondant : Settings → Environments → dev / int / prod
+    environment: ${{ needs.target.outputs.env }}
+    # Un seul déploiement à la fois par environnement ; on n'annule pas un
+    # déploiement en cours (une migration interrompue = danger)
+    concurrency:
+      group: deploy-backend-${{ needs.target.outputs.env }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Vérifier les secrets de l'environnement
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          TARGET: ${{ needs.target.outputs.env }}
+        run: |
+          missing=0
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Secret DATABASE_URL manquant dans l'environnement GitHub « $TARGET »."
+            missing=1
+          fi
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::error::Secret RENDER_DEPLOY_HOOK manquant dans l'environnement GitHub « $TARGET » (Render → service → Settings → Deploy Hook)."
+            missing=1
+          fi
+          exit $missing
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Applique les migrations en attente sur la base de l'environnement cible
+      # AVANT de déployer le code qui en dépend. `migrate deploy` est idempotent :
+      # il ne rejoue jamais une migration déjà appliquée.
+      - name: Appliquer les migrations Prisma
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx prisma migrate deploy
+
+      # `ref` force Render à déployer CE commit (celui du tag), et pas
+      # simplement la tête de la branche configurée sur le service.
+      - name: Déclencher le déploiement Render
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: curl --fail --silent --show-error -X POST "$DEPLOY_HOOK&ref=$GITHUB_SHA"
