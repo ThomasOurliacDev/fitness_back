@@ -40,7 +40,6 @@
       "Bash(curl -s -i --max-time 30 -X OPTIONS https://fitness-back-8n5l.onrender.com/v1/auth/register -H \"Origin: https://fitness-front-dev.vercel.app\" -H \"Access-Control-Request-Method: POST\")",
       "Bash(curl -s -i --max-time 45 -X OPTIONS https://fitness-back-8n5l.onrender.com/v1/auth/register -H \"Origin: https://fitness-front-dev.vercel.app\" -H \"Access-Control-Request-Method: POST\" -H \"Access-Control-Request-Headers: content-type\")",
       "Bash(curl -s -i --max-time 30 -X POST https://fitness-back-8n5l.onrender.com/v1/auth/register -H \"Origin: https://fitness-front-dev.vercel.app\" -H \"Content-Type: application/json\" -d '{}')",
-      "Bash(PORT=3007 DATABASE_URL=\"postgresql://neondb_owner:npg_bBU4tOVukjq8@ep-quiet-dew-ag9hxxgl-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require\" node dist/src/main)",
       "Bash(curl -s --max-time 30 -X POST http://localhost:3007/v1/auth/register -H \"Content-Type: application/json\" -d '{\"email\":\"claude.test@example.com\",\"password\":\"Test1234!\",\"firstName\":\"Test\",\"lastName\":\"Debug\"}')",
       "Read(//tmp/**)"
     ],
