@@ -90,40 +90,72 @@ export class WorkoutSessionService {
 			return byExercise;
 		});
 
-		// La dernière exécution réelle d'une série donnée (exercice + n° de série)
-		const findPreviousSet = (exerciseId: string, setIndex: number) => {
+		// L'état de progression d'un exercice, calculé UNE FOIS pour tout l'exercice (pas par
+		// index de série) :
+		// - fullySucceeded : la dernière séance où l'exercice a été fait a-t-elle vu TOUTES
+		//   ses séries validées ?
+		// - lastValidatedReps/Weight : le dernier palier RÉELLEMENT VALIDÉ (série marquée
+		//   réussie), en remontant l'historique si la séance la plus récente n'a validé
+		//   aucune série. C'est CE palier qu'on retente en cas d'échec — pas le template
+		//   d'origine, pas la performance ratée (plus basse).
+		const exerciseProgressionState = (exerciseId: string) => {
+			let mostRecentSets: typeof previousSessions[number]['sets'] | null = null;
+			let lastValidatedReps: number | null = null;
+			let lastValidatedWeight: number | null = null;
+
 			for (const byExercise of historyByExercise) {
-				const prevSet = byExercise.get(exerciseId)?.[setIndex];
-				if (prevSet) return prevSet;
+				const sets = byExercise.get(exerciseId);
+				if (!sets || sets.length === 0) continue;
+
+				mostRecentSets ??= sets; // uniquement la toute première séance trouvée (la plus récente)
+
+				if (lastValidatedReps === null) {
+					const validated = sets.filter((set) => set.success && set.reps != null);
+					if (validated.length > 0) {
+						const best = validated.reduce((a, b) => ((b.reps ?? 0) > (a.reps ?? 0) ? b : a));
+						lastValidatedReps = best.reps;
+						lastValidatedWeight = best.weight;
+						break; // le palier validé le plus récent est trouvé, inutile de remonter plus loin
+					}
+				}
 			}
-			return null;
+
+			return {
+				fullySucceededLastTime: mostRecentSets != null && mostRecentSets.every((set) => set.success),
+				lastValidatedReps,
+				lastValidatedWeight
+			};
 		};
 
 		return {
 			...session,
 			workout: {
 				...session.workout,
-				exercises: session.workout.exercises.map((workoutExercise) => ({
-					...workoutExercise,
-					sets: workoutExercise.sets.map((template, index) =>
-						this.withSuggestion(workoutExercise, template, findPreviousSet(workoutExercise.exerciseId, index))
-					)
-				}))
+				exercises: session.workout.exercises.map((workoutExercise) => {
+					const state = exerciseProgressionState(workoutExercise.exerciseId);
+					return {
+						...workoutExercise,
+						sets: workoutExercise.sets.map((template) => this.withSuggestion(workoutExercise, template, state))
+					};
+				})
 			}
 		};
 	}
 
 	/**
-	 * Calcule l'objectif suggéré d'une série (surcharge progressive) :
-	 * - série précédente réussie → +1 rep, plafonné à workoutExercise.maxReps ;
+	 * Calcule l'objectif suggéré d'une série (surcharge progressive), à partir du dernier
+	 * palier VALIDÉ pour cet exercice (identique pour toutes ses séries) :
+	 * - dernière séance entièrement réussie → +1 rep sur ce palier, plafonné à maxReps ;
 	 * - plafond atteint → +exercise.weightIncrement kg et retour aux reps de base du template ;
-	 * - série ratée → on consolide (mêmes reps/poids que le réalisé précédent) ;
-	 * - pas d'historique ou exercice au temps → objectifs du template inchangés.
+	 * - au moins une série ratée la dernière fois → on RETENTE le dernier palier validé
+	 *   (pas la performance ratée, plus basse ; pas le template d'origine) sur TOUTES les
+	 *   séries de l'exercice, pour pouvoir progresser une fois ce palier confirmé ;
+	 * - jamais rien validé, ou exercice au temps → objectifs du template inchangés.
 	 */
 	private withSuggestion(
 		workoutExercise: { maxReps: number; exercise: { measure: string; weightIncrement: number } },
 		template: { targetReps: number | null; targetWeight: number | null } & Record<string, unknown>,
-		prev: { reps: number | null; weight: number | null; success: boolean } | null
+		state: { fullySucceededLastTime: boolean; lastValidatedReps: number | null; lastValidatedWeight: number | null }
 	) {
 		const noSuggestion = {
 			...template,
@@ -132,34 +164,176 @@ export class WorkoutSessionService {
 			progression: null as string | null
 		};
 
-		if (workoutExercise.exercise.measure === 'TIME' || !prev) return noSuggestion;
+		if (workoutExercise.exercise.measure === 'TIME' || state.lastValidatedReps == null) return noSuggestion;
 
-		const baseReps = prev.reps ?? template.targetReps;
-		const baseWeight = prev.weight ?? template.targetWeight;
-		if (baseReps == null) return noSuggestion;
+		const { lastValidatedReps, lastValidatedWeight } = state;
 
-		// Ratée → on retente la même performance avant de progresser
-		if (!prev.success) {
-			return { ...template, suggestedReps: baseReps, suggestedWeight: baseWeight, progression: 'KEEP' };
+		if (!state.fullySucceededLastTime) {
+			// Retente le dernier palier confirmé (pas la performance ratée, plus basse)
+			return { ...template, suggestedReps: lastValidatedReps, suggestedWeight: lastValidatedWeight, progression: 'KEEP' };
 		}
 
-		const nextReps = baseReps + 1;
+		const nextReps = lastValidatedReps + 1;
 		if (nextReps <= workoutExercise.maxReps) {
-			return { ...template, suggestedReps: nextReps, suggestedWeight: baseWeight, progression: 'REPS_UP' };
+			return { ...template, suggestedReps: nextReps, suggestedWeight: lastValidatedWeight, progression: 'REPS_UP' };
 		}
 
 		// Plafond de reps atteint → on ajoute du poids et on repart des reps de base
-		if (baseWeight != null) {
+		if (lastValidatedWeight != null) {
 			return {
 				...template,
-				suggestedReps: template.targetReps ?? baseReps,
-				suggestedWeight: baseWeight + workoutExercise.exercise.weightIncrement,
+				suggestedReps: template.targetReps ?? lastValidatedReps,
+				suggestedWeight: lastValidatedWeight + workoutExercise.exercise.weightIncrement,
 				progression: 'WEIGHT_UP'
 			};
 		}
 
 		// Pas de poids (poids du corps) : on reste au plafond
 		return { ...template, suggestedReps: workoutExercise.maxReps, suggestedWeight: null, progression: 'KEEP' };
+	}
+
+	async getHistory(userId: string) {
+		// Les séances terminées, les plus récentes en premier. `workout` peut être null
+		// si la séance planifiée a depuis été supprimée (SetNull) — c'est voulu :
+		// l'historique de l'utilisateur survit à la suppression d'un programme/séance.
+		return this.prisma.workoutSession.findMany({
+			where: { userId, duration: { not: null } },
+			orderBy: { date: 'desc' },
+			take: 100,
+			include: {
+				workout: { select: { name: true, program: { select: { name: true } } } },
+				sets: {
+					orderBy: { order: 'asc' },
+					include: { exercise: { select: { name: true, bodyPart: true, measure: true } } }
+				}
+			}
+		});
+	}
+
+	async getStats(userId: string) {
+		const now = Date.now();
+		const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+		const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+		const ninetyDaysAgo = new Date(now - 90 * 24 * 60 * 60 * 1000);
+
+		const finished = { userId, duration: { not: null } } as const;
+
+		const [totalSessions, durationAgg, sessionsLast7Days, sessionsLast30Days, recentSets] = await Promise.all([
+			this.prisma.workoutSession.count({ where: finished }),
+			this.prisma.workoutSession.aggregate({ where: finished, _sum: { duration: true } }),
+			this.prisma.workoutSession.count({ where: { ...finished, date: { gte: sevenDaysAgo } } }),
+			this.prisma.workoutSession.count({ where: { ...finished, date: { gte: thirtyDaysAgo } } }),
+			// Répartition par groupe musculaire : bornée aux 90 derniers jours pour rester légère
+			this.prisma.set.findMany({
+				where: { session: { userId, duration: { not: null }, date: { gte: ninetyDaysAgo } } },
+				select: { reps: true, weight: true, exercise: { select: { bodyPart: true } } }
+			})
+		]);
+
+		const bodyPartBreakdown: Record<string, number> = {};
+		let totalVolume = 0;
+		for (const set of recentSets) {
+			bodyPartBreakdown[set.exercise.bodyPart] = (bodyPartBreakdown[set.exercise.bodyPart] ?? 0) + 1;
+			if (set.reps != null && set.weight != null) {
+				totalVolume += set.reps * set.weight;
+			}
+		}
+
+		return {
+			totalSessions,
+			totalDurationSeconds: durationAgg._sum.duration ?? 0,
+			sessionsLast7Days,
+			sessionsLast30Days,
+			totalSetsLast90Days: recentSets.length,
+			totalVolumeLast90Days: totalVolume,
+			bodyPartBreakdownLast90Days: bodyPartBreakdown
+		};
+	}
+
+	async getLoggedExercises(userId: string) {
+		// distinct() côté DB : une ligne par exercice déjà loggé par l'utilisateur,
+		// peu importe le nombre de fois où il a été fait.
+		const distinctSets = await this.prisma.set.findMany({
+			where: { session: { userId, duration: { not: null } } },
+			distinct: ['exerciseId'],
+			select: { exercise: { select: { id: true, name: true, bodyPart: true, measure: true } } }
+		});
+
+		return distinctSets.map((set) => set.exercise).sort((a, b) => a.name.localeCompare(b.name));
+	}
+
+	async getExerciseProgress(userId: string, exerciseIds: string[]) {
+		if (exerciseIds.length === 0) return [];
+
+		const exercises = await this.prisma.exercise.findMany({
+			where: { id: { in: exerciseIds } },
+			select: { id: true, name: true, measure: true }
+		});
+		const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+
+		const sets = await this.prisma.set.findMany({
+			where: { exerciseId: { in: exerciseIds }, session: { userId, duration: { not: null } } },
+			select: { exerciseId: true, reps: true, weight: true, duration: true, session: { select: { id: true, date: true } } },
+			orderBy: { session: { date: 'asc' } }
+		});
+
+		// Regroupe : exerciseId → sessionId → { date, sets de cet exercice dans cette session }
+		const bySessionByExercise = new Map<string, Map<string, { date: Date; sets: typeof sets }>>();
+		for (const set of sets) {
+			const bySession = bySessionByExercise.get(set.exerciseId) ?? new Map();
+			bySessionByExercise.set(set.exerciseId, bySession);
+
+			const entry = bySession.get(set.session.id) ?? { date: set.session.date, sets: [] as typeof sets };
+			entry.sets.push(set);
+			bySession.set(set.session.id, entry);
+		}
+
+		// On garde l'ordre demandé par le front (celui de sa sélection) et on ignore les IDs invalides
+		return exerciseIds
+			.filter((id) => exerciseById.has(id))
+			.map((exerciseId) => {
+				const exercise = exerciseById.get(exerciseId)!;
+				const sessions = Array.from(bySessionByExercise.get(exerciseId)?.values() ?? []).sort(
+					(a, b) => a.date.getTime() - b.date.getTime()
+				);
+
+				const points = sessions.map(({ date, sets: sessionSets }) => {
+					let maxWeight: number | null = null;
+					let totalVolume = 0;
+					let totalReps = 0;
+					let maxDuration: number | null = null;
+					let bestEstimatedOneRm: number | null = null;
+
+					for (const set of sessionSets) {
+						if (set.weight != null) {
+							maxWeight = maxWeight == null ? set.weight : Math.max(maxWeight, set.weight);
+						}
+						if (set.reps != null) {
+							totalReps += set.reps;
+							if (set.weight != null) {
+								totalVolume += set.reps * set.weight;
+								// Formule d'Epley : estimation du 1RM à partir d'une série sous-maximale
+								const estimated = set.weight * (1 + set.reps / 30);
+								bestEstimatedOneRm = bestEstimatedOneRm == null ? estimated : Math.max(bestEstimatedOneRm, estimated);
+							}
+						}
+						if (set.duration != null) {
+							maxDuration = maxDuration == null ? set.duration : Math.max(maxDuration, set.duration);
+						}
+					}
+
+					return {
+						date: date.toISOString(),
+						maxWeight,
+						totalVolume: totalVolume > 0 ? totalVolume : null,
+						estimatedOneRm: bestEstimatedOneRm != null ? Math.round(bestEstimatedOneRm * 10) / 10 : null,
+						totalReps: totalReps > 0 ? totalReps : null,
+						maxDuration
+					};
+				});
+
+				return { exerciseId, exerciseName: exercise.name, measure: exercise.measure, points };
+			});
 	}
 
 	async finishSession(userId: string, sessionId: string) {

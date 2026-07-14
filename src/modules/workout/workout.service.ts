@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service.js';
 import { CreateWorkoutDto } from './dto/create-workout.dto.js';
 
@@ -40,5 +40,31 @@ export class WorkoutService {
 			where: { programId },
 			include: { exercises: true } // Prépare le terrain pour la prochaine étape !
 		});
+	}
+
+	async remove(userId: string, workoutId: string) {
+		const workout = await this.prisma.workout.findUnique({
+			where: { id: workoutId },
+			include: { program: true }
+		});
+
+		if (!workout) {
+			throw new NotFoundException('Séance introuvable.');
+		}
+		if (workout.program.userId !== userId) {
+			throw new ForbiddenException('Vous ne pouvez pas supprimer cette séance.');
+		}
+
+		const activeSession = await this.prisma.workoutSession.findFirst({
+			where: { workoutId, duration: null }
+		});
+		if (activeSession) {
+			throw new ConflictException('Termine la séance en cours avant de supprimer cette séance planifiée.');
+		}
+
+		// Cascade Prisma : WorkoutExercise → SetTemplate supprimés avec.
+		// Les WorkoutSession/Set déjà réalisés sont conservés (workoutId passe à null).
+		await this.prisma.workout.delete({ where: { id: workoutId } });
+		return { id: workoutId };
 	}
 }

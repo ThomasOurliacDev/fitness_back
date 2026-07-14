@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { WorkoutService } from './workout.service.js';
 import { CreateWorkoutDto } from './dto/create-workout.dto.js';
@@ -23,5 +23,15 @@ export class WorkoutController {
 	@ApiParam({ name: 'programId', type: 'string', description: 'ID du programme' })
 	async findAllByProgram(@Param('programId') programId: string, @CurrentUser('id') userId: string) {
 		return this.workoutsService.findAllByProgram(userId, programId);
+	}
+
+	@Delete(':id')
+	@ApiOperation({
+		summary: 'Supprimer une séance planifiée entière (exercices et séries planifiées en cascade)',
+		description: "L'historique des sessions déjà réalisées sur cette séance est conservé (leur lien vers la séance planifiée est simplement retiré)."
+	})
+	@ApiParam({ name: 'id', type: 'string', description: 'ID de la séance' })
+	async remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+		return this.workoutsService.remove(userId, id);
 	}
 }

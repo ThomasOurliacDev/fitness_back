@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service.js';
 import { CreateProgramDto } from './dto/create-program.dto.js';
 
@@ -73,5 +73,36 @@ export class ProgramsService {
 		}
 
 		return program;
+	}
+
+	async remove(userId: string, programId: string) {
+		const program = await this.prisma.program.findUnique({
+			where: { id: programId },
+			include: { workouts: { select: { id: true } } }
+		});
+
+		if (!program) {
+			throw new NotFoundException('Programme introuvable.');
+		}
+		if (program.userId !== userId) {
+			throw new ForbiddenException('Vous ne pouvez pas supprimer ce programme.');
+		}
+
+		// On refuse la suppression si une séance de ce programme est en cours d'exécution
+		const workoutIds = program.workouts.map((workout) => workout.id);
+		if (workoutIds.length > 0) {
+			const activeSession = await this.prisma.workoutSession.findFirst({
+				where: { workoutId: { in: workoutIds }, duration: null }
+			});
+			if (activeSession) {
+				throw new ConflictException('Termine la séance en cours avant de supprimer ce programme.');
+			}
+		}
+
+		// Cascade Prisma : Workout → WorkoutExercise → SetTemplate sont supprimés avec.
+		// Les WorkoutSession/Set déjà réalisés sont CONSERVÉS (workoutId passe à null) :
+		// l'historique de l'utilisateur ne disparaît jamais avec un programme.
+		await this.prisma.program.delete({ where: { id: programId } });
+		return { id: programId };
 	}
 }

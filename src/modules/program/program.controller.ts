@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
 import { ProgramsService } from './program.service.js';
 import { CreateProgramDto } from './dto/create-program.dto.js';
@@ -33,5 +33,15 @@ export class ProgramController {
 	@ApiParam({ name: 'id', type: 'string', description: 'ID du programme' })
 	async findOne(@Param('id') id: string, @CurrentUser('id') userId: string) {
 		return this.programsService.findOne(userId, id);
+	}
+
+	@Delete(':id')
+	@ApiOperation({
+		summary: 'Supprimer un programme entier (séances et exercices planifiés en cascade)',
+		description: "L'historique des séances déjà réalisées est conservé (leur lien vers la séance planifiée est simplement retiré)."
+	})
+	@ApiParam({ name: 'id', type: 'string', description: 'ID du programme' })
+	async remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
+		return this.programsService.remove(userId, id);
 	}
 }

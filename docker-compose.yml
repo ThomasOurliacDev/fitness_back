@@ -1,0 +1,28 @@
+# Base PostgreSQL locale de développement.
+# Port 5434 : les PostgreSQL natifs Windows de ce poste occupent déjà
+# 5432 (v17) ET 5433 (v18).
+#
+# Démarrer :  docker compose up -d
+# Arrêter :   docker compose stop
+# Tout effacer (données comprises) : docker compose down -v
+services:
+  db:
+    image: postgres:17
+    container_name: fitness-db
+    restart: unless-stopped
+    ports:
+      - '5434:5432'
+    environment:
+      POSTGRES_USER: fitness
+      POSTGRES_PASSWORD: fitness
+      POSTGRES_DB: fitness
+    volumes:
+      - fitness-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U fitness -d fitness']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  fitness-db-data:

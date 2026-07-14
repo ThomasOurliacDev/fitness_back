@@ -6,10 +6,15 @@ import { PrismaPg } from '@prisma/adapter-pg';
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
 	constructor() {
-		const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+		// Fail-fast : sans URL, le driver pg tenterait localhost en silence et
+		// on aurait un 500 cryptique à la première requête au lieu d'un message clair.
+		const connectionString = process.env.DATABASE_URL;
+		if (!connectionString) {
+			throw new Error('DATABASE_URL manquant : configure la variable d’environnement avant de démarrer.');
+		}
+
+		const pool = new Pool({ connectionString });
 		const adapter = new PrismaPg(pool);
-		// On passe l'URL de la DB explicitement si on veut,
-		// bien que Prisma lise le .env par défaut.
 		super({ adapter });
 	}
 

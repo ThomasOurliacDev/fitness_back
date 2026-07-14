@@ -2,6 +2,14 @@
 
 Ce projet est une API robuste construite pour une application de suivi d'entraînement sportif. Elle sépare clairement la phase de **Planification** (création de programmes) de la phase d'**Exécution** (enregistrement des performances en salle de sport).
 
+## 📚 Documentation
+
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — organisation du code, mécanismes transverses (enveloppe, auth, CORS), logique de surcharge progressive
+- [docs/LOCAL_DEV.md](./docs/LOCAL_DEV.md) — démarrer en local (base Docker), créer une migration
+- [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) — les 3 environnements, le pipeline CI/CD, déployer en INT/PROD
+- [docs/HOTFIX.md](./docs/HOTFIX.md) — corriger un bug critique en production
+- [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md) — incidents de déploiement déjà rencontrés (front et back) et leur diagnostic
+
 ## 🚀 Stack Technique
 - **Framework :** NestJS v11 (Architecture modulaire)
 - **Environnement :** Node.js v25+ (Mode Full ESM natif)
